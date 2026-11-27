@@ -21,7 +21,7 @@ type LandingProps={
   collections:Editorial[];guides:Editorial[];rows:Business[];media:Media[];saved:string[];
   available:{id:string;label:string;icon?:string}[];
   onGo:(next:Section)=>void;onCategory:(next:Section,id:string)=>void;onSearch:(value:string)=>void;
-  onToggle:(id:string)=>void;onOpen:(business:Business)=>void;
+  onToggle:(id:string)=>void;onOpen:(business:Business)=>void;loading:boolean;error:string;onRetry:()=>void;
 };
 function EntryCard({entry,feature,rows,media,settings,saved,onToggle,onOpen}:{entry:Editorial;feature?:boolean;rows:Business[];media:Media[];settings:Settings;saved:string[];onToggle:(id:string)=>void;onOpen:(business:Business)=>void}) {
   const ids=entry.businesses.split(/[,\s]+/).filter(Boolean);
@@ -40,7 +40,49 @@ function EntryCard({entry,feature,rows,media,settings,saved,onToggle,onOpen}:{en
   </article>;
 }
 const sectionLabel=(slug:string)=>slug.split('-').map(x=>x.charAt(0).toUpperCase()+x.slice(1)).join(' ');
-function Landing({section,destination,settings,collections,guides,rows,media,saved,available,onGo,onCategory,onSearch,onToggle,onOpen}:LandingProps) {
+type SavedProps=Omit<LandingProps,'section'|'destination'|'available'|'onCategory'|'onSearch'>;
+function SavedPage({settings,collections,guides,rows,media,saved,onGo,onToggle,onOpen,loading,error,onRetry}:SavedProps) {
+  const [kind,setKind]=useState<'all'|'business'|'place'>('all');
+  const places=saved.map(id=>rows.find(b=>b.business_id===id)).filter((b):b is Business=>!!b);
+  const businesses=places.filter(b=>!!directoryCategory(b,settings.categories));
+  const localPlaces=places.filter(b=>!directoryCategory(b,settings.categories));
+  const shown=kind==='business'?businesses:kind==='place'?localPlaces:places;
+  const inspiration=[...collections.slice(0,2),...guides.slice(0,2)];
+  const chips=[{id:'all' as const,label:'All saved',count:places.length},{id:'business' as const,label:'Businesses',count:businesses.length},{id:'place' as const,label:'Places',count:localPlaces.length}];
+  const emptyTitle=kind==='all'?'Make it your own.':kind==='business'?'No saved businesses yet.':'No saved places yet.';
+  const emptyCopy=kind==='all'
+    ?'Tap the heart on a place or business to save it. Your collection will appear here when you have saved something.'
+    :kind==='business'?'Saved businesses will appear here. Explore the directory to find shops, services and professionals.'
+    :'Saved places and experiences will appear here. Explore the map to find things to see and do.';
+  return <div className="home-page saved-page">
+    <section className="intro home-intro saved-intro">
+      <div className="intro-inner"><div className="intro-copy">
+        <p className="eyebrow"><Heart size={14}/> YOUR COLLECTION</p>
+        <h1>Your saved places.</h1>
+        <p className="intro-description">Keep the places and businesses you want to return to in one place.</p>
+      </div></div>
+    </section>
+    <div className="saved-chips" role="group" aria-label="Saved record types">
+      {chips.map(chip=><button type="button" key={chip.id} aria-pressed={kind===chip.id} onClick={()=>setKind(chip.id)}>{chip.label} <span>({chip.count})</span></button>)}
+    </div>
+    {loading&&<p className="empty-state" role="status">Loading saved places…</p>}
+    {error&&<div className="empty-state" role="alert">{error} <button type="button" onClick={onRetry}>Retry</button></div>}
+    {!loading&&!error&&!!shown.length&&<section className="home-section saved-section">
+      <div className="section-head"><div><h2>{kind==='business'?'Saved businesses':kind==='place'?'Saved places':'All saved'}</h2><p>{shown.length.toLocaleString()} saved {shown.length===1?'record':'records'}. Tap a heart to remove it.</p></div></div>
+      <div className="saved-list">{shown.map(b=><PlaceCard key={b.business_id} business={b} media={media.filter(m=>m.business_id===b.business_id)} settings={settings} saved toggle={()=>onToggle(b.business_id)} onOpen={()=>onOpen(b)}/>)}</div>
+    </section>}
+    {!loading&&!error&&!shown.length&&<section className="home-section">
+      <div className="saved-empty"><Heart size={34}/><h2>{emptyTitle}</h2><p>{emptyCopy}</p>
+        <div className="home-actions"><button type="button" className="primary" onClick={()=>onGo('Discover')}>Discover local picks</button><button type="button" className="secondary" onClick={()=>onGo('Explore')}>Explore map</button></div>
+      </div>
+    </section>}
+    {!!inspiration.length&&<section className="home-section">
+      <div className="section-head"><div><h2>Inspiration to get started</h2><p>Published guides and collections from the local team. These are not your saved records.</p></div><button type="button" className="textlink" onClick={()=>onGo('Guides')}>All guides <ArrowUpRight size={15}/></button></div>
+      {inspiration.map(entry=><EntryCard key={entry.id} entry={entry} rows={rows} media={media} settings={settings} saved={saved} onToggle={onToggle} onOpen={onOpen}/>)}
+    </section>}
+  </div>;
+}
+function Landing({section,destination,settings,collections,guides,rows,media,saved,available,onGo,onCategory,onSearch,onToggle,onOpen,loading,error,onRetry}:LandingProps) {
   const [query,setQuery]=useState('');
   const tiles:{label:string;section:Section;category:string;icon:string}[]=[
     {label:'Stay',section:'Explore',category:'Stay',icon:'bed'},
@@ -51,6 +93,8 @@ function Landing({section,destination,settings,collections,guides,rows,media,sav
     {label:'Services',section:'Directory',category:'All',icon:'services'},
   ];
   const entryProps={rows,media,settings,saved,onToggle,onOpen};
+  if(section==='Saved') return <SavedPage settings={settings} collections={collections} guides={guides} rows={rows} media={media}
+    saved={saved} onGo={onGo} onToggle={onToggle} onOpen={onOpen} loading={loading} error={error} onRetry={onRetry}/>;
   if(section==='Home') return <div className="home-page">
     <section className="home-hero">
       <div className="home-copy">
@@ -191,7 +235,7 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
     return page;
   },[filtered,limit,selection]);
   useEffect(()=>{if(selection&&stage==='preview')results.current?.querySelector(`[data-place-id="${CSS.escape(selection)}"]`)?.scrollIntoView({block:'nearest',inline:'nearest'});},[selection,stage,visiblePlaces]);
-  const listSection=section==='Explore'||section==='Directory'||section==='Saved';
+  const listSection=(['Explore','Directory'] as Section[]).includes(section);
   const fullProfile=profileOpen&&!!placeSelected;
   const profileSlug=placeSelected&&!inDestination(placeSelected,destination)?settings.destinations.find(d=>inDestination(placeSelected,d))?.slug||slug:slug;
   const mappedRows=listSection?filtered:rows;
@@ -253,11 +297,13 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
   function locationFromCard() {
     setView('map');setStage('preview');
   }
-  function openProfile() {
-    if(!placeSelected)return;
-    history.replaceState({...history.state,selected:placeSelected.business_id},'',location.href);
+  function openProfile(target=placeSelected) {
+    if(!target)return;
+    const targetSlug=!inDestination(target,destination)?settings.destinations.find(d=>inDestination(target,d))?.slug||slug:slug;
+    history.replaceState({...history.state,selected:target.business_id},'',location.href);
     window.scrollTo(0,0);
-    history.pushState({fromDirectory:true},'',businessPath(placeSelected,profileSlug));
+    history.pushState({fromDirectory:true},'',businessPath(target,targetSlug));
+    setSelection(target.business_id);
     setProfileOpen(true);
   }
   const filteredCount=filtered.length.toLocaleString();
@@ -361,10 +407,10 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
         </aside>}
       </div>
     </div>:<Landing section={section} destination={destination} settings={settings} collections={publishedCollections} guides={publishedGuides}
-      rows={rows} media={media} saved={saved} available={available} onGo={go}
+      rows={rows} media={media} saved={saved} available={available} onGo={go} loading={loading} error={error} onRetry={()=>setReload(x=>x+1)}
       onCategory={(next,id)=>{go(next);setCat(id);setFilter('all');scrollToTop();}}
       onSearch={value=>{go('Directory');setQuery(value);setSearch(value);scrollToTop();}}
-      onToggle={toggle} onOpen={b=>{go('Explore');select(b,'full');}}/>}
+      onToggle={toggle} onOpen={b=>{if(section==='Saved')openProfile(b);else{go('Explore');select(b,'full');}}}/>}
 
     <dialog ref={filterDialog} className="filter-dialog" onClose={()=>setFilterOpen(false)} aria-labelledby="filter-heading">
       <div className="dialog-heading"><h2 id="filter-heading">Filters</h2><button type="button" className="icon-button" aria-label="Close filters" onClick={()=>setFilterOpen(false)}><X size={23}/></button></div>

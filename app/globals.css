@@ -523,3 +523,23 @@ dialog::backdrop {background:#12241bd0}
   .home-art {min-height:360px}
   .home-section {margin-top:40px}
 }
+
+/* V2 saved collection. */
+.saved-intro {padding-top:24px}
+.saved-page .home-section {margin-top:22px}
+.saved-chips {display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.saved-chips button {min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-size:13px;font-weight:700}
+.saved-chips button[aria-pressed=true] {background:var(--forest);border-color:var(--forest);color:#fff}
+.saved-chips button span {font-weight:600;opacity:.75}
+.saved-list {display:grid;gap:10px}
+.saved-empty {text-align:center;border:1px dashed var(--line);border-radius:14px;background:var(--surface);padding:36px 18px}
+.saved-empty>svg {color:var(--forest);margin-bottom:8px}
+.saved-empty h2 {font-size:clamp(22px,4.4vw,30px);line-height:1.15;letter-spacing:-.03em;margin:0}
+.saved-empty p {font-size:14px;line-height:1.55;color:var(--muted);max-width:46ch;margin:8px auto 16px}
+.saved-empty .home-actions {justify-content:center}
+@media (min-width:600px) {
+  .saved-list {grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+}
+@media (min-width:1024px) {
+  .saved-list {grid-template-columns:repeat(3,minmax(0,1fr))}
+}
