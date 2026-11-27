@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import {useCallback,useEffect,useMemo,useRef,useState,type CSSProperties,type PointerEvent as ReactPointerEvent} from 'react';
 import {ArrowLeft,ArrowUpRight,ChevronDown,ChevronLeft,ChevronRight,Compass,Heart,Home,LayoutList,Map as MapIcon,MapPin,Menu,Search,SlidersHorizontal,X} from 'lucide-react';
-import {businessPath,category,categoryInfo,coordinates,defaultSettings,inDestination,str,type Bounds,type Business,type Media,type Settings} from '../lib/model';
+import {businessPath,category,categoryInfo,coordinates,defaultSettings,directoryCategory,inDestination,str,type Bounds,type Business,type Media,type Settings} from '../lib/model';
 import {categoryIcon,IslandMark} from './Icons';
 import {coverOf,Photo,PlaceCard,PlaceDetail} from './PlaceCard';
 
@@ -28,7 +28,7 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
   const [mappedOnly,setMappedOnly]=useState(false),[sort,setSort]=useState('curated');
   const [bounds,setBounds]=useState<Bounds|null>(null);
   const [limit,setLimit]=useState(32),[saved,setSaved]=useState<string[]>([]);
-  const [view,setView]=useState<View>('map'),[expanded,setExpanded]=useState(false);
+  const [view,setView]=useState<View>(initialSection==='Directory'?'list':'map'),[expanded,setExpanded]=useState(false);
   const [navigation,setNavigation]=useState(false),[more,setMore]=useState(false),[filterOpen,setFilterOpen]=useState(false);
   const [reload,setReload]=useState(0);
   const [theme,setTheme]=useState('light');
@@ -68,6 +68,7 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
       if(destination==='saved'){setSection('Saved');setSelection(event.state?.selected||'');return;}
       if(destination)setSlug(destination);
       setSection(tabs.find(x=>x.toLowerCase()===sectionName)||'Explore');
+      setView(sectionName==='directory'||sectionName==='saved'?'list':'map');
       setSelection(sectionName==='place'?place?.split('--').at(-1)||'':event.state?.selected||'');
       if(sectionName==='place')setStage('full');
     };
@@ -85,12 +86,19 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
     }
     return index;
   },[media]);
-  const available=useMemo(()=>settings.categories.filter(c=>c.visible && (section==='Saved'||c.tourism===(section!=='Directory'))),[settings.categories,section]);
+  const available=useMemo(()=>settings.categories.filter(c=>{
+    if(!c.visible)return false;
+    if(section==='Saved')return true;
+    if(c.tourism!==(section!=='Directory'))return false;
+    // Only offer Directory categories that actually have matching businesses.
+    return section!=='Directory'||loading||!rows.length||rows.some(b=>directoryCategory(b,settings.categories)===c.id);
+  }),[settings.categories,section,rows,loading]);
+  const placeCategory=(b:Business)=>section==='Directory'?directoryCategory(b,settings.categories):category(b);
   const matching=useMemo(()=>{
     const key=search.trim().toLowerCase();
     const results=rows.filter(b=>{
-      if(section==='Saved'?!saved.includes(b.business_id):categoryInfo(b,settings)?.tourism!==(section!=='Directory'))return false;
-      if(cat!=='All'&&category(b)!==cat)return false;
+      if(section==='Saved'?!saved.includes(b.business_id):section==='Directory'?!directoryCategory(b,settings.categories):categoryInfo(b,settings)?.tourism!==true)return false;
+      if(cat!=='All'&&placeCategory(b)!==cat)return false;
       if(key&&![b.name,b.category,b.subcategory,b.address,b.barangay,b.services,b.description].some(value=>str(value).toLowerCase().includes(key)))return false;
       const p=coordinates(b);
       return (!mappedOnly||!!p)&&(!bounds||!!p&&p[0]>=bounds[0]&&p[1]>=bounds[1]&&p[0]<=bounds[2]&&p[1]<=bounds[3]);
@@ -112,7 +120,7 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
   function scrollToTop(){setLimit(32);results.current?.scrollTo({top:0});}
   function resetFilters(){setCat('All');setQuery('');setSearch('');setFilter('all');setBounds(null);setMappedOnly(false);scrollToTop();}
   function go(next:Section,nextSlug=slug){
-    if(next!==section||nextSlug!==slug){resetFilters();setSelection('');setExpanded(false);}
+    if(next!==section||nextSlug!==slug){resetFilters();setSelection('');setExpanded(false);setView(next==='Directory'||next==='Saved'?'list':'map');}
     setProfileOpen(false);setNavigation(false);setMore(false);setSlug(nextSlug);setSection(next);
     const url=destinationPath(nextSlug,next);
     if(location.pathname!==url)history.pushState({},'',url);
@@ -175,7 +183,7 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
     setProfileOpen(true);
   }
   const filteredCount=filtered.length.toLocaleString();
-  const sectionTitle=section==='Directory'?'Business Directory':section==='Saved'?'Saved places':destination.name;
+  const sectionTitle=section==='Directory'?'Find local businesses.':section==='Saved'?'Saved places':section==='Explore'?`Explore ${destination.name}`:destination.name;
   const cover=destination.hero||'';
   const brand=settings.branding;
   const branding={
@@ -206,12 +214,16 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
     {listSection?<div hidden={fullProfile} className={`discovery ${section==='Directory'?'business-directory':''} view-${view} ${expanded?'map-expanded':''} ${placeSelected&&stage!=='preview'?'has-panel':''}`}>
       <section className="intro" aria-label="Destination search" style={cover?{backgroundImage:`linear-gradient(90deg,var(--surface) 10%,transparent 80%),url("${cover}")`}:undefined}>
         <div className="intro-inner">
-          <div className="intro-copy"><p className="eyebrow"><MapPin size={14}/> PALAWAN</p><h1>{sectionTitle}</h1>
-          <p className="intro-description">{section==='Directory'?`Find local services, suppliers, and professionals in ${destination.name}.`:section==='Saved'?'Keep the places you want to come back to.':destination.description}</p></div>
+          <div className="intro-copy"><p className="eyebrow"><MapPin size={14}/> {section==='Directory'?'PALAWAN · BUSINESS DIRECTORY':section==='Saved'?'PALAWAN · SAVED':'PALAWAN · MAP'}</p><h1>{sectionTitle}</h1>
+          <p className="intro-description">{section==='Directory'?`Search local shops, services, suppliers and professionals in ${destination.name}.`:section==='Saved'?'Keep the places you want to come back to.':'Discover places around the city and find them on the interactive map.'}</p></div>
           <form className="search-line" onSubmit={e=>{e.preventDefault();setSearch(query);setBounds(null);scrollToTop();}}>
             <label className="destination-picker"><MapPin size={19}/><select aria-label="Destination" value={slug} onChange={e=>go(section,e.target.value)}>{settings.destinations.filter(d=>d.status==='published').map(d=><option key={d.slug} value={d.slug}>{d.name}</option>)}</select><ChevronDown size={14}/></label>
-            <div className="search-box"><Search size={19}/><input aria-label="Search places" value={query} onChange={e=>{setQuery(e.target.value);setSearch(e.target.value);setBounds(null);scrollToTop();}} placeholder={section==='Directory'?'Search businesses and services':'Search for hotels, cafes, tours, and more'}/>{query&&<button type="button" className="icon-button" aria-label="Clear search" onClick={()=>{setQuery('');setSearch('');}}><X size={17}/></button>}<button type="submit" className="primary search-submit">Search</button></div>
+            <div className="search-box"><Search size={19}/><input aria-label="Search places" value={query} onChange={e=>{setQuery(e.target.value);setSearch(e.target.value);setBounds(null);scrollToTop();}} placeholder={section==='Directory'?'Search businesses and services':'Search places or experiences'}/>{query&&<button type="button" className="icon-button" aria-label="Clear search" onClick={()=>{setQuery('');setSearch('');}}><X size={17}/></button>}<button type="submit" className="primary search-submit">Search</button></div>
           </form>
+          <div className="mobile-category">
+            <label><span>Category</span><span className="select-wrap"><select aria-label="Category" value={cat} onChange={e=>{setCat(e.target.value);setFilter('all');scrollToTop();}}><option value="All">{section==='Directory'?'All businesses':section==='Saved'?'All saved':'All places'}</option>{available.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select><ChevronDown size={15}/></span></label>
+            <button type="button" className="secondary filter-mobile" onClick={()=>setFilterOpen(true)}><SlidersHorizontal size={16}/> Filters</button>
+          </div>
         </div>
       </section>
       <div className="mobile-controls">
@@ -219,7 +231,6 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
           <button type="button" aria-pressed={view==='map'} onClick={()=>setView('map')}><MapIcon size={17}/> Map</button>
           <button type="button" aria-pressed={view==='list'} onClick={()=>setView('list')}><LayoutList size={18}/> List</button>
         </div>
-        <button type="button" className="icon-button filter-mobile" aria-label="Filters" onClick={()=>setFilterOpen(true)}><SlidersHorizontal size={20}/></button>
       </div>
       <section className="category-strip" aria-label="Categories">
         <div className="chips">
@@ -233,7 +244,7 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
           <div className="result-controls">
             <div className="list-tabs" aria-label="Listing selection">
               <button type="button" aria-pressed={filter==='featured'} onClick={()=>{setFilter('featured');scrollToTop();}}>Featured</button>
-              <button type="button" aria-pressed={filter==='all'} onClick={()=>{setFilter('all');scrollToTop();}}>{section==='Saved'?'Saved':'All'} <span>({matching.length.toLocaleString()})</span></button>
+              <button type="button" aria-pressed={filter==='all'} onClick={()=>{setFilter('all');scrollToTop();}}>{section==='Directory'?'All businesses':section==='Saved'?'Saved':'All'} <span>({matching.length.toLocaleString()})</span></button>
             </div>
             <button type="button" className="filter-button" onClick={()=>setFilterOpen(true)}><SlidersHorizontal size={16}/> Filters <ChevronDown size={13}/></button>
           </div>
@@ -243,7 +254,7 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
             {loading&&<p className="empty-state" role="status">Loading places…</p>}
             {error&&<div className="empty-state" role="alert">{error} <button onClick={()=>setReload(x=>x+1)}>Retry</button></div>}
             {!loading&&!error&&!filtered.length&&<div className="empty-state"><Compass size={28}/><h2>{filter==='featured'?'No featured places yet':section==='Saved'?'No saved places yet':'No places found'}</h2>{(search||cat!=='All'||bounds||mappedOnly||filter==='featured')&&<button type="button" onClick={resetFilters}>Clear filters</button>}</div>}
-            {!loading&&!error&&visiblePlaces.map(b=><PlaceCard key={b.business_id} business={b} media={byId.get(b.business_id)||[]} settings={settings} saved={saved.includes(b.business_id)} selected={selection===b.business_id} toggle={()=>toggle(b.business_id)} onOpen={()=>select(b,isMobile()?'full':'preview')}/>)}
+            {!loading&&!error&&visiblePlaces.map(b=><PlaceCard key={b.business_id} business={b} media={byId.get(b.business_id)||[]} settings={settings} saved={saved.includes(b.business_id)} selected={selection===b.business_id} categoryId={section==='Directory'?directoryCategory(b,settings.categories):undefined} toggle={()=>toggle(b.business_id)} onOpen={()=>select(b,isMobile()?'full':'preview')}/>)}
             {!loading&&filtered.length>limit&&<button className="load-more" type="button" onClick={()=>setLimit(x=>x+32)}>Load more places</button>}
           </div>
         </section>

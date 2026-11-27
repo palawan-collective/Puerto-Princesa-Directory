@@ -22,10 +22,11 @@ function Rating({business:b}:{business:Business}) {
   const value=Number(b.rating);
   return safeLink(b.rating_source)&&value>0&&value<=5?<a className="rating" href={safeLink(b.rating_source)} target="_blank" rel="noreferrer"><Star size={14} fill="currentColor"/><span>{value.toFixed(1)}{Number(b.rating_count)>0?` (${Number(b.rating_count).toLocaleString()})`:''}</span></a>:null;
 }
-type CardProps={business:Business;media:Media[];settings:Settings;saved:boolean;toggle:()=>void};
-export function PlaceCard({business:b,media,settings,saved,toggle,selected=false,onOpen}:{selected?:boolean;onOpen:()=>void}&CardProps) {
-  const info=categoryInfo(b,settings),Icon=categoryIcon(category(b),info?.icon);
-  const label=info?.label||category(b);
+type CardProps={business:Business;media:Media[];settings:Settings;saved:boolean;toggle:()=>void;categoryId?:string};
+export function PlaceCard({business:b,media,settings,saved,toggle,selected=false,onOpen,categoryId}:{selected?:boolean;onOpen:()=>void}&CardProps) {
+  const override=categoryId?settings.categories.find(c=>c.id===categoryId):undefined;
+  const info=override||categoryInfo(b,settings),resolved=categoryId||category(b),Icon=categoryIcon(resolved,info?.icon);
+  const label=info?.label||resolved;
   return <article className={'place-card '+(selected?'active-card':'')} data-place-id={b.business_id}>
     <button type="button" className="card-main" onClick={onOpen} aria-label={`View ${b.name}`} aria-pressed={selected}>
       <div className="card-photo" style={{'--ph':info?.color||'#628473'} as React.CSSProperties}><Photo media={coverOf(media)} name={b.name} icon={<Icon size={30}/>}/></div>

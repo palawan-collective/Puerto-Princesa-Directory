@@ -75,6 +75,17 @@ export function category(r: Business) {
   return raw || 'Other';
 }
 export const categoryInfo = (b: Business, settings: Settings) => settings.categories.find(c=>c.id===category(b));
+// The importer stamps every row with a tourism category in `directory_category`,
+// which hides the source business type in `category` (Retail, Automotive, ...).
+// The practical Directory lists those business types, so resolve them explicitly.
+export function directoryCategory(r: Business, cats: Category[] = defaultSettings.categories) {
+  const source = str(r.category).toLowerCase();
+  const bySource = cats.find(c=>!c.tourism && c.id.toLowerCase()===source);
+  if (bySource) return bySource.id;
+  const primary = category(r);
+  const byPrimary = cats.find(c=>!c.tourism && c.id===primary);
+  return byPrimary?.id || '';
+}
 export function coordinates(r: Business): [number,number] | null {
   if (!str(r.latitude) || !str(r.longitude)) return null;
   const lat = Number(r.latitude), lon = Number(r.longitude);
