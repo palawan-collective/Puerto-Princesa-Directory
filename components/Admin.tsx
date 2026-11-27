@@ -17,7 +17,7 @@ import '../app/admin/admin.css';
 
 const navigation=[
   {label:'Workspace',items:[['Overview',LayoutDashboard],['Businesses',Store],['Media library',Image]]},
-  {label:'Site content',items:[['Destinations',MapPin],['Categories',Tags],['Collections',ListChecks],['Guides',BookOpen],['Card designer',LayoutTemplate],['Branding',Palette],['Map settings',MapIcon]]},
+  {label:'Site content',items:[['Destinations',MapPin],['Categories',Tags],['Collections',ListChecks],['Guides',BookOpen],['Card designer',LayoutTemplate],['Page copy',FileText],['Branding',Palette],['Map settings',MapIcon]]},
   {label:'Data',items:[['Imports',Upload],['Exports',ArrowDownToLine],['Analytics',ChartNoAxesCombined],['Audit log',FileText]]},
 ] as const satisfies readonly {label:string;items:readonly (readonly [string,LucideIcon])[]}[];
 type Tab=typeof navigation[number]['items'][number][0];
@@ -31,6 +31,7 @@ const descriptions:Record<Tab,string>={
   Collections:'Group published businesses into curated recommendations.',
   Guides:'Write and publish destination guides.',
   'Card designer':'Choose visible fields and layout for category-specific place profiles.',
+  'Page copy':'Edit the headings and introductions shown on Home, About, Discover and Guides.',
   Branding:'Set the name, approved logo, typography and colors used across the site.',
   'Map settings':'Edit basemap sources. Leave a provider blank to use its default.',
   Imports:'Check business data and media permissions before adding them to the directory.',
@@ -38,7 +39,7 @@ const descriptions:Record<Tab,string>={
   Analytics:'Review outbound clicks recorded from published place profiles.',
   'Audit log':'Review changes made in this local workspace.',
 };
-const settingsTabs:SettingsTab[]=['Destinations','Categories','Collections','Guides','Card designer','Branding','Map settings'];
+const settingsTabs:SettingsTab[]=['Destinations','Categories','Collections','Guides','Card designer','Page copy','Branding','Map settings'];
 
 function Overview({state,open}:{state:State;open:(tab:Tab)=>void}) {
   const published=state.businesses.filter(approved).length;

@@ -10,7 +10,7 @@ import {CheckField,Empty,Field,jsonRequest,TextField,type Run} from './AdminFiel
 import {MediaUpload,siteAssets} from './AdminMedia';
 import {AdminPreview} from './AdminPreview';
 
-export type SettingsTab='Destinations'|'Categories'|'Collections'|'Guides'|'Card designer'|'Branding'|'Map settings';
+export type SettingsTab='Destinations'|'Categories'|'Collections'|'Guides'|'Card designer'|'Page copy'|'Branding'|'Map settings';
 const slugPattern='[a-z0-9]+(?:-[a-z0-9]+)*';
 const sectionOptions=[['description','Description'],['amenities','Amenities'],['facts','Facts and location'],['social','Links and inquiry']];
 const tileDefaults={
@@ -237,6 +237,17 @@ export function AdminSettings({tab,state,run,busy}:{tab:SettingsTab;state:State;
     </section>;
   } else if (tab==='Card designer') {
     content=<TemplateEditor state={state} settings={draft} set={templates=>update('templates',templates)}/>;
+  } else if (tab==='Page copy') {
+    const pages=draft.pages;
+    const set=(patch:Partial<Settings['pages']>)=>update('pages',{...pages,...patch});
+    content=<section className="studio-panel studio-form-grid">
+      <TextField label="Home heading" value={pages.homeTitle} set={homeTitle=>set({homeTitle})} wide required/>
+      <TextField label="Home introduction" value={pages.homeIntro} set={homeIntro=>set({homeIntro})} multiline wide/>
+      <TextField label="Local perspective note" value={pages.homeNote} set={homeNote=>set({homeNote})} multiline wide/>
+      <TextField label="About introduction" value={pages.aboutIntro} set={aboutIntro=>set({aboutIntro})} multiline wide/>
+      <TextField label="Discover introduction" value={pages.discoverIntro} set={discoverIntro=>set({discoverIntro})} multiline wide/>
+      <TextField label="Guides introduction" value={pages.guidesIntro} set={guidesIntro=>set({guidesIntro})} multiline wide/>
+    </section>;
   } else if (tab==='Branding') {
     const brand=draft.branding;
     const set=(patch:Partial<Settings['branding']>)=>update('branding',{...brand,...patch});

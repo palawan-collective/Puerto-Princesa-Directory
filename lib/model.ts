@@ -14,9 +14,11 @@ export type Category = { id: string; label: string; tourism: boolean; visible: b
 export type Editorial = { id: string; title: string; destination: string; status: 'draft' | 'published'; body: string; businesses: string };
 export type Template = { category: string; fields: string; sections: string; ratio: string; actions: 'sticky' | 'inline' };
 export type Branding = { name: string; logo: string; forest: string; ivory: string; sand: string; heading: string; font: string };
+export type PageCopy = { homeTitle: string; homeIntro: string; homeNote: string; aboutIntro: string; discoverIntro: string; guidesIntro: string };
 export type Settings = {
   destinations: Destination[]; categories: Category[]; guides: Editorial[]; collections: Editorial[];
   templates: Template[]; branding: Branding; tiles: { Street?: string; Satellite?: string; Terrain?: string };
+  pages: PageCopy;
 };
 export type State = {
   businesses: Business[]; media: Media[]; candidates: Candidate[];
@@ -45,6 +47,14 @@ export const defaultSettings: Settings = {
     ...['Retail','Real Estate','Financial Services','Professional Services','Education','Automotive','Construction','Events & Entertainment','Healthcare','Other'].map(id=>({id,label:id,tourism:false,visible:true,color:'#526c62'})),
   ],
   guides: [], collections: [], templates: [], tiles: {},
+  pages: {
+    homeTitle: 'Discover Puerto Princesa through local eyes.',
+    homeIntro: 'Curated by locals, for visitors and the people who call this city home.',
+    homeNote: 'Made for visitors and residents alike. Local knowledge connects people to the places and businesses that make Puerto Princesa special.',
+    aboutIntro: '',
+    discoverIntro: 'Curated collections that show a different side of the city.',
+    guidesIntro: 'Local stories and practical ideas for exploring the city.',
+  },
   branding: {name:'',logo:'',forest:'#124F3A',ivory:'#F7F4ED',sand:'#E6B65F',heading:'Playfair Display',font:'Inter'},
 };
 export function str(x:unknown) {

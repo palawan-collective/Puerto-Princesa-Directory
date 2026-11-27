@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import {useCallback,useEffect,useMemo,useRef,useState,type CSSProperties,type PointerEvent as ReactPointerEvent} from 'react';
 import {ArrowLeft,ArrowUpRight,ChevronDown,ChevronLeft,ChevronRight,Compass,Heart,Home,LayoutList,Map as MapIcon,MapPin,Menu,Search,SlidersHorizontal,X} from 'lucide-react';
-import {businessPath,category,categoryInfo,coordinates,defaultSettings,directoryCategory,inDestination,str,type Bounds,type Business,type Media,type Settings} from '../lib/model';
+import {businessPath,category,categoryInfo,coordinates,defaultSettings,directoryCategory,inDestination,str,type Bounds,type Business,type Destination,type Editorial,type Media,type Settings} from '../lib/model';
 import {categoryIcon,IslandMark} from './Icons';
 import {coverOf,Photo,PlaceCard,PlaceDetail} from './PlaceCard';
 
@@ -15,6 +15,84 @@ type Stage='preview'|'summary'|'full';
 const destinationPath=(slug:string,section:Section)=>section==='Saved'?'/saved':section==='Explore'?'/'+slug:'/'+slug+'/'+section.toLowerCase();
 const destinationDefault=defaultSettings.destinations[0];
 const isMobile=()=>matchMedia('(max-width: 767px)').matches;
+
+type LandingProps={
+  section:Section;destination:Destination;settings:Settings;
+  collections:Editorial[];guides:Editorial[];rows:Business[];media:Media[];saved:string[];
+  available:{id:string;label:string;icon?:string}[];
+  onGo:(next:Section)=>void;onCategory:(next:Section,id:string)=>void;onSearch:(value:string)=>void;
+  onToggle:(id:string)=>void;onOpen:(business:Business)=>void;
+};
+function EntryCard({entry,feature,rows,media,settings,saved,onToggle,onOpen}:{entry:Editorial;feature?:boolean;rows:Business[];media:Media[];settings:Settings;saved:string[];onToggle:(id:string)=>void;onOpen:(business:Business)=>void}) {
+  const ids=entry.businesses.split(/[,\s]+/).filter(Boolean);
+  const places=ids.map(id=>rows.find(b=>b.business_id===id)).filter((b):b is Business=>!!b);
+  const first=places[0];
+  const cover=first?coverOf(media.filter(m=>m.business_id===first.business_id)):undefined;
+  const Icon=categoryIcon(first?category(first):'',settings.categories.find(c=>c.id===category(first))?.icon);
+  return <article className={`entry-card ${feature?'entry-feature':''}`}>
+    {first&&<div className="entry-art"><Photo media={cover} name={first.name} icon={<Icon size={38}/>}/></div>}
+    <div className="entry-copy">
+      <p className="eyebrow">{sectionLabel(entry.destination)}</p>
+      <h3>{entry.title}</h3>
+      {!!entry.body&&<p>{entry.body}</p>}
+      {!!places.length&&<div className="entry-places">{places.slice(0,feature?4:3).map(b=><button type="button" key={b.business_id} onClick={()=>onOpen(b)}><Icon size={16}/><span>{b.name}</span><ArrowUpRight size={15}/></button>)}</div>}
+    </div>
+  </article>;
+}
+const sectionLabel=(slug:string)=>slug.split('-').map(x=>x.charAt(0).toUpperCase()+x.slice(1)).join(' ');
+function Landing({section,destination,settings,collections,guides,rows,media,saved,available,onGo,onCategory,onSearch,onToggle,onOpen}:LandingProps) {
+  const [query,setQuery]=useState('');
+  const tiles:{label:string;section:Section;category:string;icon:string}[]=[
+    {label:'Stay',section:'Explore',category:'Stay',icon:'bed'},
+    {label:'Eat & drink',section:'Explore',category:'Eat',icon:'coffee'},
+    {label:'Experiences',section:'Explore',category:'Explore',icon:'compass'},
+    {label:'Shop local',section:'Directory',category:'Retail',icon:'shop'},
+    {label:'Wellness',section:'Explore',category:'Wellness',icon:'wellness'},
+    {label:'Services',section:'Directory',category:'All',icon:'services'},
+  ];
+  const entryProps={rows,media,settings,saved,onToggle,onOpen};
+  if(section==='Home') return <div className="home-page">
+    <section className="home-hero">
+      <div className="home-copy">
+        <p className="eyebrow"><MapPin size={14}/> PALAWAN · CURATED BY LOCALS</p>
+        <h1>{settings.pages?.homeTitle||`Discover ${destination.name} through local eyes.`}</h1>
+        <p className="home-lede">{settings.pages?.homeIntro||'Curated by locals, for visitors and the people who call this city home.'}</p>
+        <form className="home-search" onSubmit={e=>{e.preventDefault();onSearch(query.trim());}}>
+          <Search size={19}/><input aria-label="Search places and services" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find places or services"/><button type="submit" className="primary">Search</button>
+        </form>
+        <div className="home-actions">
+          <button type="button" className="primary" onClick={()=>onGo('Explore')}>Explore the map <ArrowUpRight size={16}/></button>
+          <button type="button" className="secondary" onClick={()=>onGo('Discover')}>Discover local picks</button>
+        </div>
+      </div>
+      <div className="home-art" role="img" aria-label="Illustrated Palawan coastline"><IslandMark/><span>Puerto Princesa · Palawan</span></div>
+    </section>
+    <div className="home-paths">
+      <button type="button" onClick={()=>onGo('Discover')}><Compass size={21}/><span><strong>I'm visiting</strong><small>Stay, eat and explore</small></span><ArrowUpRight size={17}/></button>
+      <button type="button" onClick={()=>onGo('Directory')}><Home size={21}/><span><strong>I live here</strong><small>Find shops and services</small></span><ArrowUpRight size={17}/></button>
+    </div>
+    <section className="home-section"><div className="section-head"><div><h2>Find what you need</h2><p>Explore by category.</p></div></div>
+      <div className="home-cats">{tiles.map(tile=>{const Icon=categoryIcon(tile.category,settings.categories.find(c=>c.id===tile.category)?.icon);return <button type="button" key={tile.label} onClick={()=>onCategory(tile.section,tile.category)}><Icon size={24}/><span>{tile.label}</span></button>;})}</div>
+    </section>
+    <section className="home-note"><p className="eyebrow">Our local perspective</p><h2>More than a directory.</h2><p>{settings.pages?.homeNote||'Made for visitors and residents alike. Local knowledge connects people to the places and businesses that make Puerto Princesa special.'}</p><button type="button" className="secondary" onClick={()=>onGo('About')}>Why we curate <ArrowUpRight size={16}/></button></section>
+    <section className="home-banner"><div className="banner-art" aria-hidden="true"><MapIcon size={34}/></div><div><h3>Explore the city on the map</h3><p>Find businesses, experiences and everyday essentials.</p></div><button type="button" className="primary" onClick={()=>onGo('Explore')}>Open map <ArrowUpRight size={16}/></button></section>
+    {!!collections.length&&<section className="home-section"><div className="section-head"><div><h2>The local edit</h2><p>A different way to discover the city.</p></div><button type="button" className="textlink" onClick={()=>onGo('Discover')}>All collections <ArrowUpRight size={15}/></button></div><EntryCard entry={collections[0]} feature {...entryProps}/></section>}
+    {!!guides.length&&<section className="home-section"><div className="section-head"><div><h2>Stories and guides</h2><p>Ideas for exploring with a local perspective.</p></div><button type="button" className="textlink" onClick={()=>onGo('Guides')}>All guides <ArrowUpRight size={15}/></button></div><EntryCard entry={guides[0]} {...entryProps}/></section>}
+    <section className="home-section"><div className="section-head"><div><h2>Support local business</h2><p>Find the people and businesses that make the city home.</p></div><button type="button" className="textlink" onClick={()=>onGo('Directory')}>Browse directory <ArrowUpRight size={15}/></button></div></section>
+  </div>;
+  const editorial=section==='Guides'?guides:collections;
+  return <div className={`home-page editorial-page ${section.toLowerCase()}-page`}>
+    <section className="intro home-intro"><div className="intro-inner"><div className="intro-copy">
+      <p className="eyebrow"><MapPin size={14}/> {section==='About'?'PALAWAN · OUR PURPOSE':section==='Guides'?'PALAWAN · GUIDES':'PALAWAN · LOCAL PICKS'}</p>
+      <h1>{section==='About'?'About '+destination.name:section==='Guides'?destination.name+' guides':'Discover '+destination.name}</h1>
+      <p className="intro-description">{section==='About'?settings.pages?.aboutIntro||destination.description:section==='Guides'?settings.pages?.guidesIntro:settings.pages?.discoverIntro}</p>
+    </div></div></section>
+    {section==='Discover'&&<section className="home-section"><div className="editorial-categories">{available.map(c=>{const Icon=categoryIcon(c.id,c.icon);return <button key={c.id} type="button" onClick={()=>onCategory('Explore',c.id)}><Icon size={22}/><span>{c.label}</span></button>;})}</div></section>}
+    {section==='About'&&<><section className="home-note"><p className="eyebrow">Our local perspective</p><h2>More than a directory.</h2><p>{settings.pages?.homeNote||'Made for visitors and residents alike. Local knowledge connects people to the places and businesses that make Puerto Princesa special.'}</p><div className="home-actions"><button type="button" className="primary" onClick={()=>onGo('Discover')}>Discover local picks</button><button type="button" className="secondary" onClick={()=>onGo('Directory')}>Browse directory</button></div></section>{!!guides.length&&<section className="home-section"><div className="section-head"><div><h2>Guides</h2><p>Stories from a local perspective.</p></div></div>{guides.map(entry=><EntryCard key={entry.id} entry={entry} {...entryProps}/>)}</section>}</>}
+    {!!editorial.length&&<section className="home-section"><div className="section-head"><div><h2>{section==='Guides'?'Published guides':'Published collections'}</h2><p>{section==='Guides'?'Ideas for exploring with a local perspective.':'Curated by the local team.'}</p></div></div>{editorial.map((entry,index)=><EntryCard key={entry.id} entry={entry} feature={index===0} {...entryProps}/>)}</section>}
+    {!editorial.length&&<section className="home-note"><h2>Start exploring</h2><p>{section==='Guides'?'Guides will appear here once they are published.':'Collections will appear here once they are published.'} In the meantime, browse the map or the business directory.</p><div className="home-actions"><button type="button" className="primary" onClick={()=>onGo('Explore')}>Open the map</button><button type="button" className="secondary" onClick={()=>onGo('Directory')}>Browse directory</button></div></section>}
+  </div>;
+}
 
 export default function Directory({initialSlug='puerto-princesa',initialSection='Explore',initialPlace}:{initialSlug?:string;initialSection?:Section;initialPlace?:string}) {
   const [rows,setRows]=useState<Business[]>([]),[media,setMedia]=useState<Media[]>([]);
@@ -193,7 +271,8 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
   const initialChips=available.filter(c=>core.includes(c.id));
   const extraChips=available.filter(c=>!core.includes(c.id));
   const navLinks=['Explore','Discover','Guides','Directory','About'] as const;
-  const editorial=settings[section==='Guides'?'guides':'collections'].filter(x=>x.destination===slug);
+  const publishedCollections=settings.collections.filter(x=>x.destination===slug&&x.status==='published');
+  const publishedGuides=settings.guides.filter(x=>x.destination===slug&&x.status==='published');
   return <main className={`shell ${theme==='dark'?'dark':''} ${placeSelected&&stage==='full'?'show-detail':''}`} style={branding}>
     <header className="site-header">
       <a className="site-brand" href={destinationPath(slug,'Home')} onClick={e=>{e.preventDefault();go('Home');}} aria-label={`${destination.name} Directory home`}>
@@ -281,15 +360,11 @@ export default function Directory({initialSlug='puerto-princesa',initialSection=
           <PlaceDetail key={placeSelected.business_id} business={placeSelected} media={byId.get(placeSelected.business_id)||[]} settings={settings} destination={profileSlug} saved={saved.includes(placeSelected.business_id)} toggle={()=>toggle(placeSelected.business_id)} onClose={closeDetail} onLocate={locationFromCard} onProfile={openProfile}/>
         </aside>}
       </div>
-    </div>:<section className="editorial">
-      <p className="eyebrow"><MapPin size={15}/> PALAWAN</p>
-      <h1>{section==='Home'?destination.name:section==='About'?`About ${destination.name}`:section==='Discover'?`Discover ${destination.name}`:`${destination.name} guides`}</h1>
-      {section!=='Guides'&&<p>{destination.description}</p>}
-      {(section==='Home'||section==='About')&&<a className="primary" href={destinationPath(slug,'Explore')} onClick={e=>{e.preventDefault();go('Explore');}}>Explore {destination.name} <ArrowUpRight size={16}/></a>}
-      {section==='Discover'&&<div className="editorial-categories">{available.map(c=>{const Icon=categoryIcon(c.id,c.icon);return <button key={c.id} type="button" onClick={()=>{go('Explore');setCat(c.id);}}><Icon size={22}/><span>{c.label}</span></button>;})}</div>}
-      {(section==='Guides'||section==='Discover')&&editorial.map(entry=><article className="editorial-entry" key={entry.id}><h2>{entry.title}</h2><p>{entry.body}</p><div className="editorial-cards">{entry.businesses.split(/[,\s]+/).flatMap(id=>{const b=rows.find(x=>x.business_id===id);return b?[<PlaceCard key={id} business={b} media={byId.get(id)||[]} settings={settings} saved={saved.includes(id)} toggle={()=>toggle(id)} onOpen={()=>{go('Explore');select(b,'full');}}/>]:[];})}</div></article>)}
-      {section==='Guides'&&!editorial.length&&<p>No published guides yet.</p>}
-    </section>}
+    </div>:<Landing section={section} destination={destination} settings={settings} collections={publishedCollections} guides={publishedGuides}
+      rows={rows} media={media} saved={saved} available={available} onGo={go}
+      onCategory={(next,id)=>{go(next);setCat(id);setFilter('all');scrollToTop();}}
+      onSearch={value=>{go('Directory');setQuery(value);setSearch(value);scrollToTop();}}
+      onToggle={toggle} onOpen={b=>{go('Explore');select(b,'full');}}/>}
 
     <dialog ref={filterDialog} className="filter-dialog" onClose={()=>setFilterOpen(false)} aria-labelledby="filter-heading">
       <div className="dialog-heading"><h2 id="filter-heading">Filters</h2><button type="button" className="icon-button" aria-label="Close filters" onClick={()=>setFilterOpen(false)}><X size={23}/></button></div>
