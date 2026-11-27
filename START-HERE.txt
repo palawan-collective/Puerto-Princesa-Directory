@@ -1,0 +1,14 @@
+IslaVista local app
+
+1. Install Node.js 22 or newer if it is missing.
+2. Open Start-IslaVista.command on macOS or Start-IslaVista.bat on Windows.
+3. The browser opens the admin. Keep the terminal window open.
+
+The launcher chooses a free port and prints the directory and admin addresses.
+
+The admin opens without a login. The first run installs dependencies.
+Keep this folder to preserve your edits and uploads.
+
+On Linux, open source/islavista in a terminal and run:
+npm ci
+npm run local
