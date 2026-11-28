@@ -5,5 +5,8 @@ export default function config(phase:string):NextConfig {
   return {
     distDir:phase===PHASE_DEVELOPMENT_SERVER?(process.env.ISLAVISTA_NEXT_DEV_DIR||'.next-dev'):'.next',
     devIndicators:false,
+    outputFileTracingIncludes: {
+      '/api/media': ['./public/preview-media/**'],
+    },
   };
 }

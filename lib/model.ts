@@ -11,10 +11,14 @@ export type Destination = {
   bounds?: Bounds; hero?: string; seo?: string;
 };
 export type Category = { id: string; label: string; tourism: boolean; visible: boolean; color: string; icon?: string };
-export type Editorial = { id: string; title: string; destination: string; status: 'draft' | 'published'; body: string; businesses: string };
+export type Editorial = {
+  id: string; title: string; destination: string; status: 'draft' | 'published'; body: string; businesses: string;
+  /** Admin-managed, rights-cleared managed-media URL. Never a prototype asset. */
+  cover?: string; category?: string; imageAlt?: string; excerpt?: string; coverCaption?: string;
+};
 export type Template = { category: string; fields: string; sections: string; ratio: string; actions: 'sticky' | 'inline' };
 export type Branding = { name: string; logo: string; forest: string; ivory: string; sand: string; heading: string; font: string };
-export type PageCopy = { homeTitle: string; homeIntro: string; homeNote: string; aboutIntro: string; discoverIntro: string; guidesIntro: string };
+export type PageCopy = { homeTitle: string; homeIntro: string; homeNote: string; aboutIntro: string; aboutBody: string; aboutPurpose: string; discoverIntro: string; guidesIntro: string };
 export type Settings = {
   destinations: Destination[]; categories: Category[]; guides: Editorial[]; collections: Editorial[];
   templates: Template[]; branding: Branding; tiles: { Street?: string; Satellite?: string; Terrain?: string };
@@ -22,6 +26,8 @@ export type Settings = {
 };
 export type State = {
   businesses: Business[]; media: Media[]; candidates: Candidate[];
+  /** True once the bundled preview editorial has been offered to an empty workspace. */
+  previewSeeded?: boolean;
   settings: Settings; audit: { at: string; action: string; target: string }[];
   imports: { at: string; name: string; added: number; updated: number; rejected: number; id?: string; kind?: string; total?: number; unchanged?: number; duplicates?: number; errors?: string[] }[];
   analytics: { at: string; business_id: string; channel: string }[];
@@ -52,6 +58,8 @@ export const defaultSettings: Settings = {
     homeIntro: 'Curated by locals, for visitors and the people who call this city home.',
     homeNote: 'Made for visitors and residents alike. Local knowledge connects people to the places and businesses that make Puerto Princesa special.',
     aboutIntro: '',
+    aboutBody: '',
+    aboutPurpose: '',
     discoverIntro: 'Curated collections that show a different side of the city.',
     guidesIntro: 'Local stories and practical ideas for exploring the city.',
   },

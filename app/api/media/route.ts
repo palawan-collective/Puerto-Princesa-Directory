@@ -2,7 +2,7 @@ import {Readable} from 'node:stream';
 import {admin,authorize,privatePreview} from '../../../lib/auth';
 import {parseRows} from '../../../lib/imports';
 import {
-  collectBytes,downloadApprovedMedia,isMediaFilename,isMediaId,maxUploadBytes,mediaResponse,openMediaZip,
+  bundledPreviewResponse,collectBytes,downloadApprovedMedia,isMediaFilename,isMediaId,maxUploadBytes,mediaResponse,openMediaZip,
   prepareMedia,removeManagedMedia,siteAssetId,withMediaWrite,writeManagedMedia,
 } from '../../../lib/media';
 import {approved,authorized,categoryInfo,inDestination,safeLink,str,type Media,type State} from '../../../lib/model';
@@ -12,9 +12,12 @@ export const runtime='nodejs';
 
 function isReferenced(state:State,media:Media,publishedOnly=false) {
   const matches=(url?:string)=>!!url&&(url===media.url||url===media.thumbnail);
+  const editorial=publishedOnly
+    ?[...state.settings.collections,...state.settings.guides].filter(entry=>entry.status==='published')
+    :[...state.settings.collections,...state.settings.guides];
   return matches(state.settings.branding.logo)||state.settings.destinations.some(destination=>
     (!publishedOnly||destination.status==='published')&&matches(destination.hero),
-  );
+  )||editorial.some(entry=>matches(entry.cover));
 }
 
 async function serve(request:Request,head=false) {
@@ -39,7 +42,12 @@ async function serve(request:Request,head=false) {
       }
     }
     const thumbnail=params.get('thumb')==='1'&&!!media.thumbnail;
-    return await mediaResponse(dataDirectory,id,file,{thumbnail,head},request.headers.get('range'));
+    try {
+      return await mediaResponse(dataDirectory,id,file,{thumbnail,head},request.headers.get('range'));
+    } catch {
+      if (id===siteAssetId) return await bundledPreviewResponse(file,{thumbnail,head});
+      throw Error('The media file is missing.');
+    }
   } catch {
     return new Response(null,{status:404});
   }

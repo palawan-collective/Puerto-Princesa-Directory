@@ -1,4 +1,4 @@
-import {useState,type FormEvent} from 'react';
+import {useRef,useState,type FormEvent,type MouseEvent} from 'react';
 import {ArrowDown,ArrowUp,ExternalLink,Image as ImageIcon,Link2,Star,Trash2,Upload} from 'lucide-react';
 import {authorized,safeLink,str,type Candidate,type Media,type State} from '../lib/model';
 import {Photo} from './PlaceCard';
@@ -22,24 +22,34 @@ export function MediaUpload({id,run,busy,site=false,onUploaded}:{id:string;run:R
   const [count,setCount]=useState(0);
   const [permitted,setPermitted]=useState(false);
   const [result,setResult]=useState<MediaResult|null>(null);
-  async function upload(event:FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form=event.currentTarget;
-    const data=new FormData(form);
+  const form=useRef<HTMLDivElement>(null);
+  async function upload(event:MouseEvent<HTMLButtonElement>) {
+    event.preventDefault();event.stopPropagation();
+    const root=form.current;
+    const data=new FormData();
+    for (const element of root?.querySelectorAll('input,select')||[]) {
+      if(!(element instanceof HTMLInputElement||element instanceof HTMLSelectElement))continue;
+      if(!element.name)continue;
+      if(element instanceof HTMLInputElement&&element.type==='file'){
+        for(const file of element.files||[])data.append(element.name,file);
+      } else data.append(element.name,element.value);
+    }
     data.set('permission',permitted?'approved':'pending');
     data.set('business_id',id);
     const next=await run<MediaResult>('/api/media',{method:'POST',body:data});
     if (next) {
       setResult(next);
       if (next.imported>0) {
-        form.reset();
+        for(const element of root?.querySelectorAll('input')||[]){
+          if(element.type==='file')element.value='';else if(element.type!=='checkbox')element.value='';
+        }
         setPermitted(false);
         setCount(0);
       }
       if(next.media?.[0]) onUploaded?.(next.media[0]);
     }
   }
-  return <form className="studio-panel studio-media-upload" onSubmit={upload}>
+  return <div ref={form} className="studio-panel studio-media-upload">
     <h3><Upload size={17}/> {site?'Upload an approved image':'Upload approved media'}</h3>
     <div className="studio-form-grid">
       <Field label={site?'Image file':'Images and videos'} wide hint={site?'Upload a logo or destination hero.':'Select up to 20 images or videos, 50 MB total. Rights details apply to the batch.'}><input name="file" type="file" required multiple={!site} accept={site?'image/jpeg,image/png,image/webp,image/gif,image/avif':'image/*,video/mp4,video/webm'} onChange={event=>{setCount(event.target.files?.length||0);setResult(null);}}/></Field>
@@ -50,9 +60,9 @@ export function MediaUpload({id,run,busy,site=false,onUploaded}:{id:string;run:R
       {!site&&<Field label="Placement"><select name="type"><option value="gallery">Gallery item</option><option value="cover">Cover item</option></select></Field>}
     </div>
     <CheckField label="I have confirmed permission to publish these files." value={permitted} set={setPermitted}/>
-    <button className="primary" type="submit" disabled={busy||!permitted||!count}>{busy?'Uploading…':`Upload${count>1?` ${count} files`:site?' image':' media'}`}</button>
+    <button className="primary" type="button" disabled={busy||!permitted||!count} onClick={upload}>{busy?'Uploading…':`Upload${count>1?` ${count} files`:site?' image':' media'}`}</button>
     {result&&<MediaReport result={result}/>}
-  </form>;
+  </div>;
 }
 
 function MediaItem({item,run,busy,isFirst,isLast}:{item:Media;run:Run;busy:boolean;isFirst?:boolean;isLast?:boolean}) {

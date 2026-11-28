@@ -66,6 +66,7 @@ function AssetPicker({title,media,value,set,run,busy}:{title:string;media:Media[
       </select></Field>
       {managed&&<img src={managed} alt={title}/>}
       <button type="button" aria-expanded={upload} onClick={()=>setUpload(!upload)}>{upload?'Close upload':'Upload a new image'}</button>
+      <button type="button" disabled={!value} onClick={()=>set('')}>Remove image</button>
     </div>
     {upload&&<MediaUpload id={siteAssets} run={run} busy={busy} site onUploaded={item=>{set(item.url);setUpload(false);}}/>}
   </>;
@@ -105,7 +106,7 @@ function CategoryEditor({value,set}:{value:Category;set:(patch:Partial<Category>
   </div>;
 }
 
-function EditorialEditor({value,set,state,destinations}:{value:Editorial;set:(patch:Partial<Editorial>)=>void;state:State;destinations:Destination[]}) {
+function EditorialEditor({value,set,state,destinations,run,busy}:{value:Editorial;set:(patch:Partial<Editorial>)=>void;state:State;destinations:Destination[];run:Run;busy:boolean}) {
   const [query,setQuery]=useState('');
   const chosen=list(value.businesses);
   const term=query.trim().toLowerCase();
@@ -113,12 +114,19 @@ function EditorialEditor({value,set,state,destinations}:{value:Editorial;set:(pa
   return <div className="studio-form-grid">
     <TextField label="Title" value={value.title} set={title=>set({title})} required wide/>
     <TextField label="URL identifier" value={value.id} set={id=>set({id})} required pattern={slugPattern} maxLength={100}/>
+    <TextField label="Category" value={value.category||''} set={category=>set({category})} maxLength={120}/>
+    <TextField label="Short excerpt" value={value.excerpt||''} set={excerpt=>set({excerpt})} multiline wide/>
     <Field label="Destination"><select value={value.destination} onChange={event=>set({destination:event.target.value})}>
       {!destinations.some(d=>d.slug===value.destination)&&<option value={value.destination}>{value.destination||'Choose a destination'}</option>}
       {destinations.map(destination=><option key={destination.slug} value={destination.slug}>{destination.name}</option>)}
     </select></Field>
     <StatusField value={value.status} set={status=>set({status})}/>
     <TextField label="Body" value={value.body} set={body=>set({body})} multiline wide required={value.status==='published'}/>
+    <div className="studio-wide studio-form-grid">
+      <AssetPicker title="Cover image" media={state.media} value={value.cover||''} set={cover=>set({cover})} run={run} busy={busy}/>
+      <TextField label="Image alt text" value={value.imageAlt||''} set={imageAlt=>set({imageAlt})} maxLength={500}/>
+      <TextField label="Image caption" value={value.coverCaption||''} set={coverCaption=>set({coverCaption})} maxLength={500}/>
+    </div>
     <TextField label="Linked business IDs" value={value.businesses} set={businesses=>set({businesses})} wide multiline hint="Enter IDs in the order they should appear, one per line."/>
     <TextField label="Find a business to link" value={query} set={setQuery} wide placeholder="Search name or ID"/>
     {term&&<div className="studio-wide studio-business-options">{options.length?options.map(b=><button key={b.business_id} type="button" disabled={chosen.includes(b.business_id)} onClick={()=>set({businesses:[...chosen,b.business_id].join('\n')})}><Plus size={15}/>{b.name}</button>):<p>No matching businesses.</p>}</div>}
@@ -233,7 +241,7 @@ export function AdminSettings({tab,state,run,busy}:{tab:SettingsTab;state:State;
         add={()=>{const title=`New ${name}`;update(key,[...items,{id:unique(slugify(title),items.map(item=>item.id)),title,destination:stableDestinations[0]?.slug||'',status:'draft',body:'',businesses:''}]);choose(items.length);}}
         move={delta=>{update(key,moved(items,index,delta));choose(index+delta);}}
         drop={item?()=>remove(items,next=>update(key,next),item.title):undefined}/>
-      {item?<EditorialEditor key={index} value={item} set={set} state={state} destinations={stableDestinations}/>:<Empty>Add a {name} to start writing.</Empty>}
+      {item?<EditorialEditor key={index} value={item} set={set} state={state} destinations={stableDestinations} run={run} busy={busy}/>:<Empty>Add a {name} to start writing.</Empty>}
     </section>;
   } else if (tab==='Card designer') {
     content=<TemplateEditor state={state} settings={draft} set={templates=>update('templates',templates)}/>;
@@ -245,6 +253,8 @@ export function AdminSettings({tab,state,run,busy}:{tab:SettingsTab;state:State;
       <TextField label="Home introduction" value={pages.homeIntro} set={homeIntro=>set({homeIntro})} multiline wide/>
       <TextField label="Local perspective note" value={pages.homeNote} set={homeNote=>set({homeNote})} multiline wide/>
       <TextField label="About introduction" value={pages.aboutIntro} set={aboutIntro=>set({aboutIntro})} multiline wide/>
+      <TextField label="About feature paragraph" value={pages.aboutBody} set={aboutBody=>set({aboutBody})} multiline wide/>
+      <TextField label="About purpose note" value={pages.aboutPurpose} set={aboutPurpose=>set({aboutPurpose})} multiline wide/>
       <TextField label="Discover introduction" value={pages.discoverIntro} set={discoverIntro=>set({discoverIntro})} multiline wide/>
       <TextField label="Guides introduction" value={pages.guidesIntro} set={guidesIntro=>set({guidesIntro})} multiline wide/>
     </section>;

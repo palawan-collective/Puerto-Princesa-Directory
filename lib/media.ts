@@ -244,6 +244,33 @@ export async function mediaResponse(root:string,id:string,filename:string,option
   }
 }
 
+/**
+ * Serves the bundled concept photography that ships with the presentation build.
+ * These files live in `public/preview-media` and are only used when the local
+ * managed-media directory does not have the file (for example on Vercel).
+ */
+export async function bundledPreviewResponse(filename:string,options:{thumbnail?:boolean;head?:boolean}={}) {
+  if (!filename.startsWith('preview-')||!isMediaFilename(filename)) throw Error('Invalid bundled media.');
+  const file=await open(path.join(process.cwd(),'public','preview-media',filename+(options.thumbnail?'.thumb.webp':'')),'r');
+  let streaming=false;
+  try {
+    const {size}=await file.stat();
+    const headers=new Headers({
+      'Content-Type':'image/webp',
+      'Cache-Control':'public, max-age=31536000, immutable',
+      'Content-Length':String(size),
+      'X-Content-Type-Options':'nosniff',
+      'Accept-Ranges':'none',
+    });
+    if (options.head) return new Response(null,{status:200,headers});
+    const stream=file.createReadStream({autoClose:true});
+    streaming=true;
+    return new Response(Readable.toWeb(stream) as ReadableStream<Uint8Array>,{status:200,headers});
+  } finally {
+    if (!streaming) await file.close();
+  }
+}
+
 export async function collectBytes(stream:AsyncIterable<Uint8Array>,limit:number,message:string) {
   const chunks:Buffer[]=[];
   let total=0;
