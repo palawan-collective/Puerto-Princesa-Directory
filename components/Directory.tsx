@@ -231,14 +231,14 @@ function Landing({section,destination,settings,collections,guides,rows,media,sav
   if(section==='Guides') {
     const guideCategories=['All',...Array.from(new Set(guides.map(entry=>entry.category||'Guides').filter(Boolean)))];
     const visibleGuides=guideFilter==='All'?guides:guides.filter(entry=>(entry.category||'Guides')===guideFilter);
-    const feature=guides[0];
+    const feature=guides.find(entry=>entry.featured===true)||guides[0];
     return <div className="home-page editorial-page guides-page">
       <section className="ed-intro">
         <p className="eyebrow"><MapPin size={14}/> PALAWAN · STORIES AND GUIDES</p>
         <h1>The local guide.</h1>
         <p className="ed-lede">{settings.pages?.guidesIntro||'Stories, itineraries and useful recommendations shaped by local knowledge.'}</p>
       </section>
-      {feature&&<EditorialFeature entry={feature} label={`Featured guide${feature.id.startsWith('preview-')?' · Editorial concept':''}`} cta="Browse guides" href="#guides" rows={rows} media={media}/>}
+      {feature&&<EditorialFeature entry={feature} label={`Featured story${feature.featured?" of the week":""}${feature.id.startsWith("preview-")?" \u00b7 Editorial concept":""}`} cta="Read story" href={`/${feature.destination}/guides/${feature.id}`} rows={rows} media={media}/>}
       {!!guides.length&&<section className="home-section" id="guides">
         <div className="section-head"><div><h2>Find your next story</h2><p>Guide topics and editorial collections.</p></div></div>
         <div className="chips" role="group" aria-label="Guide filters">
