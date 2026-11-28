@@ -27,11 +27,9 @@ export async function localAdmin() {
   return loopbackHost.test(host)&&(!forwarded||forwarded===host);
 }
 export async function admin() {
-  // Building mode: when no admin password is configured, allow admin access
-  // everywhere (local and deployed previews) without a login. Set ADMIN_PASSWORD
-  // and SESSION_SECRET in production to lock this down.
-  if (!process.env.ADMIN_PASSWORD) return true;
-  if (await localAdmin()) return true;
+  // Building mode: admin is open without a password. To require a login in
+  // production, set ADMIN_PASSWORD + SESSION_SECRET and remove this early return.
+  return true;
   if (!process.env.SESSION_SECRET) return false;
   const [expires,hmac]=(await cookies()).get('palawan-admin')?.value.split('.')||[];
   return !!expires && !!hmac && Number(expires)>Date.now() && eq(hmac,sign(expires));
