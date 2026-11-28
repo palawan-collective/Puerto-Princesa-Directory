@@ -127,6 +127,18 @@ function EditorialEditor({value,set,state,destinations,run,busy}:{value:Editoria
       <TextField label="Image alt text" value={value.imageAlt||''} set={imageAlt=>set({imageAlt})} maxLength={500}/>
       <TextField label="Image caption" value={value.coverCaption||''} set={coverCaption=>set({coverCaption})} maxLength={500}/>
     </div>
+    <TextField label="Author name" value={value.author||''} set={author=>set({author})} maxLength={120} hint="Who wrote this story (you, an agent, or a community contributor)."/>
+    <Field label="Author type"><select value={value.authorType||'admin'} onChange={event=>set({authorType:event.target.value as Editorial['authorType']})}>
+      <option value="admin">Local editor / admin</option>
+      <option value="agent">IslaVista agent</option>
+      <option value="community">Community contributor</option>
+    </select></Field>
+    <CheckField label="Featured story of the week" value={value.featured===true} set={featured=>set({featured})}/>
+    <TextField label="Gallery media URLs" value={value.gallery||''} set={gallery=>set({gallery})} multiline wide hint="One managed media URL per line. Add photos or videos from the media library; videos play inline in the story."/>
+    <Field label="Add media to gallery"><select value="" onChange={event=>{const url=event.target.value;if(url){const current=(value.gallery||'').split(/[\s,]+/).filter(Boolean);if(!current.includes(url))set({gallery:[...current,url].join('\n')});}}}>
+      <option value="">Choose a media file…</option>
+      {state.media.map(m=><option key={m.url} value={m.url}>{m.filename||m.url.split('/').pop()}</option>)}
+    </select></Field>
     <TextField label="Linked business IDs" value={value.businesses} set={businesses=>set({businesses})} wide multiline hint="Enter IDs in the order they should appear, one per line."/>
     <TextField label="Find a business to link" value={query} set={setQuery} wide placeholder="Search name or ID"/>
     {term&&<div className="studio-wide studio-business-options">{options.length?options.map(b=><button key={b.business_id} type="button" disabled={chosen.includes(b.business_id)} onClick={()=>set({businesses:[...chosen,b.business_id].join('\n')})}><Plus size={15}/>{b.name}</button>):<p>No matching businesses.</p>}</div>}

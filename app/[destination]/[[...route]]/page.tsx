@@ -3,6 +3,7 @@ import {notFound} from 'next/navigation';
 import Directory,{type Section} from '../../../components/Directory';
 import {catalog} from '../../../lib/catalog';
 import {businessPath,str} from '../../../lib/model';
+import GuideDetail from '../../../components/GuideDetail';
 
 type Props={params:Promise<{destination:string;route?:string[]}>};
 const sections:Record<string,Section>={home:'Home',explore:'Explore',discover:'Discover',guides:'Guides',directory:'Directory',about:'About'};
@@ -26,6 +27,11 @@ export default async function DestinationPage({params}:Props) {
     if(!place)notFound();
     const schema={'@context':'https://schema.org','@type':'LocalBusiness',name:place.name,address:str(place.address),url:businessPath(place,destination)};
     return <>{!data.preview&&<script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema).replaceAll('<','\u003c')}}/>}<Directory initialSlug={destination} initialPlace={place.business_id}/></>;
+  }
+  if(route[0]==='guides'&&route.length===2){
+    const guide=data.settings.guides.find(g=>g.id===route[1]&&g.status==='published');
+    if(!guide)notFound();
+    return <GuideDetail destination={destination} guide={guide} data={data}/>;
   }
   if(route.length>1||(route[0]&&!sections[route[0]]))notFound();
   return <Directory initialSlug={destination} initialSection={sections[route[0]]||'Explore'}/>;

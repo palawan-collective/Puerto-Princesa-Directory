@@ -15,6 +15,12 @@ export type Editorial = {
   id: string; title: string; destination: string; status: 'draft' | 'published'; body: string; businesses: string;
   /** Admin-managed, rights-cleared managed-media URL. Never a prototype asset. */
   cover?: string; category?: string; imageAlt?: string; excerpt?: string; coverCaption?: string;
+  /** Who wrote this story (admin name, agent, or community member). */
+  author?: string; authorType?: 'admin' | 'agent' | 'community';
+  /** Extra managed-media URLs (images/videos) shown in the story gallery. */
+  gallery?: string;
+  /** Optional highlight for the week; admin can mark one story. */
+  featured?: boolean;
 };
 export type Template = { category: string; fields: string; sections: string; ratio: string; actions: 'sticky' | 'inline' };
 export type Branding = { name: string; logo: string; forest: string; ivory: string; sand: string; heading: string; font: string };

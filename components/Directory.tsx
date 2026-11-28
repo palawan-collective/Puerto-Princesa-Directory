@@ -93,7 +93,7 @@ function EditorialCard({entry,kind='collection',rows,media,savedCollections,onTo
       {open&&kind==='guide'&&!!paragraphs.length&&<div className="ed-body">{paragraphs.map((line,index)=><p key={index}>{line}</p>)}</div>}
       <div className="ed-card-foot">
         <span>{kind==='guide'?(entry.id.startsWith('preview-')?'Editorial concept':'Guide'):'Collection'}</span>
-        <button type="button" className="ed-link" onClick={()=>kind==='guide'?setOpen(value=>!value):onExplore(entry)}>{actionLabel} <ArrowUpRight size={15}/></button>
+        {kind==='guide'?<a className="ed-link" href={`/${entry.destination}/guides/${entry.id}`}>Read story <ArrowUpRight size={15}/></a>:<button type="button" className="ed-link" onClick={()=>onExplore(entry)}>{actionLabel} <ArrowUpRight size={15}/></button>}
       </div>
     </div>
   </article>;

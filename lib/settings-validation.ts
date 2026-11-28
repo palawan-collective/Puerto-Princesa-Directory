@@ -10,6 +10,9 @@ const latitude=z.number().min(-90).max(90),longitude=z.number().min(-180).max(18
 const item=z.object({
   id:slug,title:text.min(1),destination:slug,status,body:text,businesses:text,
   cover:media.optional(),category:text.max(120).optional(),imageAlt:text.max(500).optional(),excerpt:text.optional(),coverCaption:text.optional(),
+  author:text.max(120).optional(),authorType:z.enum(['admin','agent','community']).optional(),
+  gallery:z.string().refine(x=>!x||x.split(/[\s,]+/).filter(Boolean).every(u=>!!managedMedia(u))).optional(),
+  featured:z.boolean().optional(),
 });
 const tile=z.string().max(400).refine(x=>!x||(['{x}','{y}','{z}'].every(v=>x.includes(v))&&x.startsWith('https://')&&safeLink(x.replaceAll('{s}','a'))));
 export const settingsSchema=z.object({
