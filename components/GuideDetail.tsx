@@ -1,8 +1,55 @@
 'use client';
 
 import {ArrowLeft, MapPin, Play, Image as ImageIcon, User} from 'lucide-react';
+import React from 'react';
 import {str, type Business, type Editorial, type Media, type Settings} from '../lib/model';
 import {categoryIcon} from './Icons';
+
+function renderInline(text: string): (string | React.ReactElement)[] {
+  const parts: (string | React.ReactElement)[] = [];
+  const regex = /(\*\*[^*]+\*\*|!\[([^\]]*)\]\(([^)]+)\))/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    if (m[0].startsWith('![')) {
+      parts.push(<img key={m.index} src={m[3]} alt={m[2] || ''} loading="lazy" className="md-inline-image" />);
+    } else {
+      parts.push(<strong key={m.index}>{m[0].slice(2, -2)}</strong>);
+    }
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
+function renderMarkdown(body: string) {
+  const lines = body.split('\n');
+  const blocks: React.ReactElement[] = [];
+  let i = 0;
+  let listItems: string[] = [];
+  const flushList = () => {
+    if (listItems.length) {
+      blocks.push(<ul key={`ul-${blocks.length}`}>{listItems.map((li, j) => <li key={j}>{renderInline(li)}</li>)}</ul>);
+      listItems = [];
+    }
+  };
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (!trimmed) { flushList(); i++; continue; }
+    const h = trimmed.match(/^(#{1,3})\s+(.*)$/);
+    if (h) { flushList(); const level = h[1].length; const Tag = (`h${level + 2}`) as any; blocks.push(<Tag key={`h-${i}`}>{renderInline(h[2])}</Tag>); i++; continue; }
+    if (/^[-*]\s+/.test(trimmed)) { listItems.push(trimmed.replace(/^[-*]\s+/, '')); i++; continue; }
+    const img = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    if (img) { flushList(); blocks.push(<figure key={`img-${i}`} className="md-figure"><img src={img[2]} alt={img[1] || ''} loading="lazy" /></figure>); i++; continue; }
+    flushList();
+    blocks.push(<p key={`p-${i}`}>{renderInline(trimmed)}</p>);
+    i++;
+  }
+  flushList();
+  return blocks;
+}
 
 function mediaSynthetic(url: string, name: string, alt?: string, business_id = 'site-assets'): Media {
   const isVideo = /\.(mp4|webm)(\?|$)/i.test(url);
@@ -60,9 +107,7 @@ export default function GuideDetail({ destination, guide, data }: { destination:
 
       {!!guide.body && (
         <section className="guide-detail-body">
-          {guide.body.split(/\n{2,}/).map((para, i) => (
-            <p key={i}>{para}</p>
-          ))}
+          {renderMarkdown(guide.body)}
         </section>
       )}
 

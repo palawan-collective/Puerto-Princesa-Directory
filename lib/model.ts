@@ -12,7 +12,7 @@ export type Destination = {
 };
 export type Category = { id: string; label: string; tourism: boolean; visible: boolean; color: string; icon?: string };
 export type Editorial = {
-  id: string; title: string; destination: string; status: 'draft' | 'published'; body: string; businesses: string;
+  id: string; title: string; destination: string; status: 'draft' | 'published' | 'pending' | 'rejected'; body: string; businesses: string;
   /** Admin-managed, rights-cleared managed-media URL. Never a prototype asset. */
   cover?: string; category?: string; imageAlt?: string; excerpt?: string; coverCaption?: string;
   /** Who wrote this story (admin name, agent, or community member). */
@@ -21,6 +21,8 @@ export type Editorial = {
   gallery?: string;
   /** Optional highlight for the week; admin can mark one story. */
   featured?: boolean;
+  /** Community submission metadata. */
+  submittedBy?: string; submittedEmail?: string; submittedAt?: string;
 };
 export type Template = { category: string; fields: string; sections: string; ratio: string; actions: 'sticky' | 'inline' };
 export type Branding = { name: string; logo: string; forest: string; ivory: string; sand: string; heading: string; font: string };

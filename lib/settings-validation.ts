@@ -6,13 +6,15 @@ const slug=z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(100);
 const hex=z.string().regex(/^#[0-9a-f]{6}$/i);
 const media=z.string().refine(x=>!x||!!managedMedia(x));
 const status=z.enum(['published','draft']);
+const editorialStatus=z.enum(['published','draft','pending','rejected']);
 const latitude=z.number().min(-90).max(90),longitude=z.number().min(-180).max(180);
 const item=z.object({
-  id:slug,title:text.min(1),destination:slug,status,body:text,businesses:text,
+  id:slug,title:text.min(1),destination:slug,status:editorialStatus,body:text,businesses:text,
   cover:media.optional(),category:text.max(120).optional(),imageAlt:text.max(500).optional(),excerpt:text.optional(),coverCaption:text.optional(),
   author:text.max(120).optional(),authorType:z.enum(['admin','agent','community']).optional(),
   gallery:z.string().refine(x=>!x||x.split(/[\s,]+/).filter(Boolean).every(u=>!!managedMedia(u))).optional(),
   featured:z.boolean().optional(),
+  submittedBy:text.max(120).optional(),submittedEmail:text.max(200).optional(),submittedAt:text.max(40).optional(),
 });
 const tile=z.string().max(400).refine(x=>!x||(['{x}','{y}','{z}'].every(v=>x.includes(v))&&x.startsWith('https://')&&safeLink(x.replaceAll('{s}','a'))));
 export const settingsSchema=z.object({

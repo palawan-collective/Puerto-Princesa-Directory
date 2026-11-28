@@ -150,6 +150,7 @@ function Landing({section,destination,settings,collections,guides,rows,media,sav
   const [query,setQuery]=useState('');
   const [discoverFilter,setDiscoverFilter]=useState('All');
   const [guideFilter,setGuideFilter]=useState('All');
+  const [submitOpen,setSubmitOpen]=useState(false);
   const tiles:{label:string;section:Section;category:string;icon:string}[]=[
     {label:'Stay',section:'Explore',category:'Stay',icon:'bed'},
     {label:'Eat & drink',section:'Explore',category:'Eat',icon:'coffee'},
@@ -249,8 +250,24 @@ function Landing({section,destination,settings,collections,guides,rows,media,sav
       </section>}
       <section className="localnote">
         <div><p className="eyebrow">Local knowledge</p><h2>Read it. Save it. Find it.</h2></div>
-        <div><p>Published guides connect to actual places and businesses. Save a favorite or open a recommended place on the map.</p><div className="home-actions"><button type="button" className="primary" onClick={()=>onGo('Explore')}>Explore the map</button></div></div>
+        <div><p>Published guides connect to actual places and businesses. Save a favorite or open a recommended place on the map.</p><div className="home-actions"><button type="button" className="primary" onClick={()=>onGo('Explore')}>Explore the map</button><button type="button" className="secondary" onClick={()=>setSubmitOpen(true)}>Share your story</button></div></div>
       </section>
+      {submitOpen&&<div className="submit-modal" role="dialog" aria-modal="true" aria-label="Share your story">
+        <div className="submit-modal-card">
+          <div className="submit-modal-head"><h2>Share your story</h2><button type="button" className="icon-button" onClick={()=>setSubmitOpen(false)} aria-label="Close"><X size={18}/></button></div>
+          <p className="ed-lede">Tell us about a place, a meal, a day trip or a community you love. Your story will be reviewed before it is published.</p>
+          <form className="submit-form" onSubmit={async(e)=>{e.preventDefault();const f=new FormData(e.currentTarget);const payload={destination:destination.slug,title: String(f.get('title')||''),category:String(f.get('category')||'Community story'),excerpt:String(f.get('excerpt')||''),body:String(f.get('body')||''),author:String(f.get('author')||''),email:String(f.get('email')||''),businesses:String(f.get('businesses')||'')};try{const r=await fetch('/api/submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const j=await r.json();if(!r.ok)throw new Error(j.error||'Could not submit');alert('Thank you! Your story was submitted for review.');setSubmitOpen(false);}catch(err){alert((err as Error).message);}}}>
+            <label>Title<input name="title" required maxLength={120}/></label>
+            <label>Your name<input name="author" required maxLength={120}/></label>
+            <label>Email (optional)<input name="email" type="email" maxLength={200}/></label>
+            <label>Topic<select name="category"><option>Community story</option><option>Food & drink</option><option>Day trip</option><option>Wellness</option><option>Neighborhood</option></select></label>
+            <label>Short summary<input name="excerpt" maxLength={200}/></label>
+            <label>Your story<textarea name="body" required rows={8} placeholder="What happened, where, and why it mattered..."/></label>
+            <label>Place IDs mentioned (optional)<textarea name="businesses" rows={2} placeholder="One business ID per line"/></label>
+            <div className="home-actions"><button type="button" className="secondary" onClick={()=>setSubmitOpen(false)}>Cancel</button><button type="submit" className="primary">Submit story</button></div>
+          </form>
+        </div>
+      </div>}
     </div>;
   }
   if(section==='About') {

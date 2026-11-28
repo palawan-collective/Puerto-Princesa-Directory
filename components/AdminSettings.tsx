@@ -120,7 +120,12 @@ function EditorialEditor({value,set,state,destinations,run,busy}:{value:Editoria
       {!destinations.some(d=>d.slug===value.destination)&&<option value={value.destination}>{value.destination||'Choose a destination'}</option>}
       {destinations.map(destination=><option key={destination.slug} value={destination.slug}>{destination.name}</option>)}
     </select></Field>
-    <StatusField value={value.status} set={status=>set({status})}/>
+    <Field label="Status"><select value={value.status} onChange={event=>set({status:event.target.value as Editorial["status"]})}>
+      <option value="draft">Draft</option>
+      <option value="published">Published</option>
+      <option value="pending">Pending review</option>
+      <option value="rejected">Rejected</option>
+    </select></Field>
     <TextField label="Body" value={value.body} set={body=>set({body})} multiline wide required={value.status==='published'}/>
     <div className="studio-wide studio-form-grid">
       <AssetPicker title="Cover image" media={state.media} value={value.cover||''} set={cover=>set({cover})} run={run} busy={busy}/>
